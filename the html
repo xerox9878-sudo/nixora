@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>Nixora | Curate the Future of Living</title>
+  <!-- Tailwind CSS + Font Awesome + Google Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <!-- Custom override styles (removing global loader & fixing layout) -->
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      background: #0A0C14;
+      margin: 0;
+      padding: 0;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1E1F2A;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3A3F5E;
+      border-radius: 10px;
+    }
+    /* gradient card accent */
+    .glass-card {
+      background: rgba(18, 22, 35, 0.9);
+      backdrop-filter: blur(2px);
+      border: 1px solid rgba(56, 68, 90, 0.4);
+    }
+    .neon-border {
+      box-shadow: 0 0 8px rgba(0, 230, 200, 0.2);
+    }
+    .btn-primary-grad {
+      background: linear-gradient(95deg, #00C9A7 0%, #00A2FF 100%);
+      transition: 0.2s;
+    }
+    .btn-primary-grad:hover {
+      opacity: 0.9;
+      transform: scale(0.98);
+    }
+    input, button {
+      outline: none;
+    }
+    .task-card-hover:hover {
+      transform: translateY(-2px);
+      border-color: #00C9A7;
+      transition: 0.2s;
+    }
+    .bottom-nav-active {
+      color: #00E6C4;
+      border-bottom: 2px solid #00E6C4;
+    }
+    /* hide global loading animation or any preloader — no loading page */
+    .no-loader {
+      animation: none;
+    }
+  </style>
+</head>
+<body class="bg-[#0A0C14] text-gray-200 antialiased">
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="app-root" class="max-w-md mx-auto relative min-h-screen bg-[#0E111B] shadow-2xl overflow-x-hidden"></div>
+
+  <script>
+    // ------------------------- MOCK DATABASE (localStorage) -------------------------
+    const STORAGE_USERS = "nixora_users";
+    const STORAGE_SESSION = "nixora_session";
+
+    // Helper: get stored users
+    function getUsers() {
+      const raw = localStorage.getItem(STORAGE_USERS);
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
+    }
+
+    function getCurrentSession() {
+      const sess = localStorage.getItem(STORAGE_SESSION);
+      return sess ? JSON.parse(sess) : null;
+    }
+
+    function setSession(userId, userObj) {
+      localStorage.setItem(STORAGE_SESSION, JSON.stringify({ userId, user: userObj }));
+    }
+
+    function clearSession() {
+      localStorage.removeItem(STORAGE_SESSION);
+    }
+
+    // create default user data (rich matching UI style)
+    function getDefaultUserData(email, password, fullName = "Explorer") {
+      const id = Date.now() + Math.random().toString(36);
+      return {
+        id: id,
+        email: email,
+        password: password,      // plain for demo (fix login issue)
+        fullName: fullName,
+        walletBalance: 25000,     // Available Wallet Balance
+        redeemableBalance: 14250,
+        totalEarnings: 34250,
+        tasksCompletedCount: 145,
+        level: 14,
+
+        depositVolume: 3000,
+        vipProgress: 65,          // % to next rank
+        currentRank: "PROSPERITY PARTNER",
+nextRank: "SILVER GROWTH",
+        // completed tasks tracking (prevent double claim)
+        completedTasks: {
+          survey: false,
+          watchVideos: false,
+          referFriend: false
+        },
+        depositHistory: [
+          { amount: 2000, bonus: "1.5%", date: "2025-05-10" },
+          { amount: 4500, bonus: "5%", date: "2025-05-12" },
+          { amount: 10999, bonus: "7.5%", date: "2025-05-15" },
+          { amount: 22999, bonus: "10%", date: "2025-05-18" }
+        ],
+        recentTransactions: [
+          { method: "Bank of Abyssinia", amount: 25000, status: "Completed", time: "1:32 PM" },
+          { method: "Bank of Abyssinia", amount: 25000, status: "Completed", time: "1:00 PM" },
+          { method: "CBE", amount: 25000, status: "Completed", time: "3:00 PM" }
+        ]
+      };
+    }
+
+    // Register logic FIXED: can login with same password
+    function registerUser(email, password, fullName) {
+      let users = getUsers();
+      const existing = users.find(u => u.email === email);
+      if (existing) return { success: false, message: "Email already registered." };
+      const newUser = getDefaultUserData(email, password, fullName);
+      users.push(newUser);
+      saveUsers(users);
+      // auto login after registration
+      setSession(newUser.id, newUser);
+      return { success: true, user: newUser };
+    }
+
+    function loginUser(email, password) {
+      const users = getUsers();
+      const user = users.find(u => u.email === email && u.password === password);
+      if (!user) return { success: false, message: "Invalid email or password." };
+      setSession(user.id, user);
+      return { success: true, user: user };
+    }
+
+    function getCurrentUser() {
+      const session = getCurrentSession();
+      if (!session) return null;
+      const users = getUsers();
+      const freshUser = users.find(u => u.id === session.userId);
+      return freshUser || null;
+    }
+
+    // update user data in global store
+    function updateUserInStorage(updatedUser) {
+      let users = getUsers();
+      const index = users.findIndex(u => u.id === updatedUser.id);
+      if (index !== -1) {
+        users[index] = updatedUser;
+        saveUsers(users);
+        // also update session
+        setSession(updatedUser.id, updatedUser);
+      }
+      return updatedUser;
+    }
+
+    // ----- TASK COMPLETION LOGIC (ETB rewards) -----
+    function completeTask(user, taskKey, rewardAmount, taskDisplayName) {
+      if (user.completedTasks[taskKey]) return { success: false, message: Task "${taskDisplayName}" already completed! };
+      // update stats
+      user.completedTasks[taskKey] = true;
+      user.redeemableBalance += rewardAmount;
+      user.totalEarnings += rewardAmount;
+      user.tasksCompletedCount += 1;
+      // re-calc daily progress etc. (just mock)
+      updateUserInStorage(user);
+      return { success: true, message: +${rewardAmount} ETB earned!, user };
+    }
+
+    // deposit simulation (increase wallet and deposit history)
+    function simulateDeposit(user, amount, methodName) {
+      if (amount <= 0) return { success: false, message: "Enter valid amount" };
+      user.walletBalance += amount;
+      user.depositVolume += amount;
+      // add to deposit history
+      let bonusPercent = "0%";
+      if (amount >= 2000 && amount < 4500) bonusPercent = "1.5%";
+      else if (amount >= 4500 && amount < 10999) bonusPercent = "5%";
+      else if (amount >= 10999 && amount < 22999) bonusPercent = "7.5%";
+      else if (amount >= 22999) bonusPercent = "10%";
+      user.depositHistory.unshift({ amount: amount, bonus: bonusPercent, date: new Date().toLocaleDateString() });
+      user.recentTransactions.unshift({ method: methodName, amount: amount, status: "Completed", time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
+      updateUserInStorage(user);
+      return { success: true, user, message: ${amount} ETB deposited via ${methodName} };
+    }
+// ----------------------------- RENDER ENGINE (NO LOADING PAGE, NO TOP LOGO) -----------------------------
+    let currentTab = "home";   // home, tasks, promotions, deposit, account
+    let authView = "login";    // login or register
+    let root = document.getElementById("app-root");
+
+    // remove any loading class / ensure no fullscreen loader
+    function render() {
+      const sessionUser = getCurrentUser();
+      if (!sessionUser) {
+        renderAuthScreen();
+      } else {
+        renderDashboard(sessionUser);
+      }
+    }
+
+    function renderAuthScreen() {
+      const isLogin = authView === "login";
+      root.innerHTML = 
+        <div class="min-h-screen flex flex-col justify-center px-6 py-12 bg-[#0A0C14]">
+          <div class="w-full max-w-sm mx-auto">
+            <!-- NO FAR TOP LOGO - removed any NIXORA branding from top -->
+            <div class="mb-8 text-center">
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 mx-auto flex items-center justify-center shadow-lg">
+                <i class="fas fa-leaf text-white text-2xl"></i>
+              </div>
+              <h2 class="mt-4 text-2xl font-bold tracking-tight text-white">${isLogin ? 'Welcome Back' : 'Create account'}</h2>
+              <p class="text-sm text-gray-400 mt-1">${isLogin ? 'Sign in to continue to Nixora' : 'Start earning & boost your future'}</p>
+            </div>
+
+            <div class="bg-[#121826] rounded-2xl p-6 border border-gray-800 shadow-xl">
+              <form id="auth-form" class="space-y-5">
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">Email address</label>
+                  <input type="email" id="email" class="w-full bg-[#1E1F2A] border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent" placeholder="your@email.com" required>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                  <input type="password" id="password" class="w-full bg-[#1E1F2A] border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500" placeholder="••••••••" required>
+                </div>
+                ${!isLogin ? 
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">Full Name (optional)</label>
+                  <input type="text" id="fullname" class="w-full bg-[#1E1F2A] border border-gray-700 rounded-xl px-4 py-3 text-white" placeholder="Alex Johnson">
+                </div>
+                 : ''}
+                <button type="submit" class="w-full btn-primary-grad text-white font-semibold py-3 rounded-xl transition-all shadow-md">${isLogin ? 'Sign In' : 'Register →'}</button>
+              </form>
+              <div class="mt-6 text-center">
+                <button id="toggle-auth" class="text-sm text-cyan-400 hover:text-cyan-300 transition">${isLogin ? "Don't have an account? Register" : "Already have an account? Login"}</button>
+              </div>
+            </div>
+            <p class="text-center text-xs text-gray-500 mt-8">Secure • No loading screens • Instant access</p>
+          </div>
+        </div>
+      ;
+
+      document.getElementById("auth-form")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById("email").value.trim();
+        const pwd = document.getElementById("password").value.trim();
+        if (!email || !pwd) return alert("Please fill all fields");
+        if (isLogin) {
+          const result = loginUser(email, pwd);
+          if (result.success) {
+            render(); // go to dashboard
+          } else {
+            alert(result.message);
+}
+        } else {
+          const fullname = document.getElementById("fullname")?.value.trim() || "Member";
+          const result = registerUser(email, pwd, fullname);
+          if (result.success) {
+            render();
+          } else {
+            alert(result.message);
+          }
+        }
+      });
+
+      document.getElementById("toggle-auth")?.addEventListener("click", () => {
+        authView = isLogin ? "register" : "login";
+        render();
+      });
+    }
+
+    // DASHBOARD with bottom tabs & NO far top logo
+    function renderDashboard(user) {
+      // helper to render active tab
+      const activeContent = () => {
+        switch(currentTab) {
+          case "home": return renderHomeTab(user);
+          case "tasks": return renderTasksTab(user);
+          case "promotions": return renderPromotionsTab(user);
+          case "deposit": return renderDepositTab(user);
+          case "account": return renderAccountTab(user);
+          default: return renderHomeTab(user);
+        }
+      };
+
+      root.innerHTML = 
+        <div class="flex flex-col min-h-screen pb-20 relative">
+          <!-- NO TOP LOGO BANNER - header completely removed logo, only status minimal bar -->
+          <div class="sticky top-0 z-10 bg-[#0E111B]/90 backdrop-blur-md px-5 pt-6 pb-2 border-b border-gray-800/50">
+            <div class="flex justify-between items-center">
+              <div class="text-xs font-medium text-gray-400 tracking-wide"><i class="fas fa-shield-alt mr-1 text-cyan-400"></i> SECURED WALLET</div>
+              <button id="logout-btn" class="text-xs text-gray-400 hover:text-red-400 transition"><i class="fas fa-sign-out-alt mr-1"></i> Exit</button>
+            </div>
+          </div>
+          
+          <!-- main scroll content -->
+          <div class="flex-1 px-4 py-5 space-y-6">
+            ${activeContent()}
+          </div>
+          
+          <!-- bottom navigation (exactly like images) -->
+          <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#0E111B]/95 backdrop-blur-lg border-t border-gray-800 py-2 flex justify-around items-center z-20">
+            <button data-tab="home" class="bottom-nav-item flex flex-col items-center text-xs ${currentTab === 'home' ? 'text-cyan-400' : 'text-gray-500'}"><i class="fas fa-home text-xl mb-1"></i><span>Home</span></button>
+            <button data-tab="tasks" class="bottom-nav-item flex flex-col items-center text-xs ${currentTab === 'tasks' ? 'text-cyan-400' : 'text-gray-500'}"><i class="fas fa-tasks text-xl mb-1"></i><span>Tasks</span></button>
+            <button data-tab="promotions" class="bottom-nav-item flex flex-col items-center text-xs ${currentTab === 'promotions' ? 'text-cyan-400' : 'text-gray-500'}"><i class="fas fa-gem text-xl mb-1"></i><span>Promotions</span></button>
+            <button data-tab="deposit" class="bottom-nav-item flex flex-col items-center text-xs ${currentTab === 'deposit' ? 'text-cyan-400' : 'text-gray-500'}"><i class="fas fa-wallet text-xl mb-1"></i><span>Deposit</span></button>
+            <button data-tab="account" class="bottom-nav-item flex flex-col items-center text-xs ${currentTab === 'account' ? 'text-cyan-400' : 'text-gray-500'}"><i class="fas fa-user-circle text-xl mb-1"></i><span>Account</span></button>
+          </div>
+        </div>
+      ;
+
+      // attach bottom nav events
+      document.querySelectorAll(".bottom-nav-item").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          const tab = btn.getAttribute("data-tab");
+          if (tab) {
+            currentTab = tab;
+            render();
+          }
+        });
+      });
+      document.getElementById("logout-btn")?.addEventListener("click", () => {
+        clearSession();
+        authView = "login";
+        render();
+      });
+    }
+// HOME TAB - overview, wallet, deposit history, tasks summary
+    function renderHomeTab(user) {
+      return 
+        <!-- Available Wallet Balance -->
+        <div class="bg-gradient-to-r from-[#0F172A] to-[#111827] rounded-2xl p-5 border border-gray-800 shadow-lg">
+          <div class="flex justify-between items-start">
+            <div><p class="text-gray-400 text-xs uppercase tracking-wider">Available Wallet Balance</p><p class="text-3xl font-bold text-white mt-1">${user.walletBalance.toLocaleString()} ETB</p></div>
+            <div class="bg-cyan-500/20 px-3 py-1 rounded-full"><span class="text-cyan-400 text-xs font-bold">VIP ${user.level}</span></div>
+          </div>
+          <div class="flex justify-between mt-3 text-sm"><span class="text-gray-400">Redeemable:</span><span class="font-semibold text-emerald-400">${user.redeemableBalance.toLocaleString()} ETB</span></div>
+        </div>
+        
+        <!-- Deposit History & Balance Growth (image style) -->
+        <div class="bg-[#121826] rounded-2xl p-4 border border-gray-800">
+          <div class="flex justify-between items-center"><h3 class="font-bold">Deposit History & Bonus</h3><span class="text-xs text-cyan-400">Deposit Volume: +${user.depositVolume} ETB</span></div>
+          <div class="mt-3 space-y-2 max-h-36 overflow-y-auto">
+            ${user.depositHistory.slice(0,4).map(d => <div class="flex justify-between border-b border-gray-800 py-2 text-sm"><span>${d.amount.toLocaleString()} ETB</span><span class="text-green-400">Bonus ${d.bonus}</span></div>).join('')}
+          </div>
+        </div>
+        
+        <!-- Unified Task Categories (quick action) -->
+        <div class="bg-[#121826] rounded-2xl p-4 border border-gray-800">
+          <h3 class="font-bold flex items-center gap-2"><i class="fas fa-list-check text-cyan-400"></i> Unified Task Categories</h3>
+          <div class="grid gap-3 mt-3">
+            ${renderTaskButton(user, 'survey', '📋 Complete Survey', 50)}
+            ${renderTaskButton(user, 'watchVideos', '🎬 Watch 3 Videos', 20)}
+            ${renderTaskButton(user, 'referFriend', '👥 Refer a Friend', 100)}
+          </div>
+          <p class="text-gray-500 text-xs mt-3 text-center">Complete each task once & earn instantly</p>
+        </div>
+        
+        <!-- Payment methods limits quick glance -->
+        <div class="bg-[#121826]/70 rounded-xl p-4">
+          <h4 class="text-sm font-semibold mb-2">💳 Payment Limits (ETB)</h4>
+          <div class="grid grid-cols-2 gap-2 text-xs"><span>🏦 CBE: 50,000</span><span>🏦 Bank of Abyssinia: 35,000</span><span>📱 Telebirr: 20,000</span><span>₿ Crypto: 50,000</span><span>💳 Visa: 35,000</span></div>
+        </div>
+      ;
+    }
+
+    // helper for task button with status
+    function renderTaskButton(user, taskKey, label, reward) {
+      const isDone = user.completedTasks[taskKey];
+      const displayName = label;
+      if (isDone) {
+        return <div class="bg-gray-800/40 rounded-xl p-3 flex justify-between items-center"><span>${label}</span><span class="text-emerald-400 text-sm"><i class="fas fa-check-circle"></i> +${reward} ETB (claimed)</span></div>;
+      }
+      return <button data-task="${taskKey}" data-reward="${reward}" data-name="${label}" class="task-action bg-[#1F2937] hover:bg-[#2D3A4A] transition rounded-xl p-3 flex justify-between items-center w-full"><span>${label}</span><span class="text-cyan-300 text-sm">+${reward} ETB <i class="fas fa-arrow-right"></i></span></button>;
+    }
+
+    // TASKS tab (boosters, social engagement)
+    function renderTasksTab(user) {
+      return `
+        <div class="space-y-5">
+          <div class="bg-[#121826] rounded-2xl p-4">
+            <h2 class="font-bold text-lg flex items-center gap-2"><i class="fab fa-google"></i> Google Ads Booster</h2>
+<div class="mt-2"><div class="w-full bg-gray-700 rounded-full h-2"><div class="bg-cyan-400 h-2 rounded-full" style="width:75%"></div></div><p class="text-right text-xs mt-1">Completion 75%</p></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-[#121826] p-3 rounded-xl"><i class="fab fa-tiktok text-2xl"></i><p class="font-bold mt-1">Like Booster</p><div class="bg-gray-700 rounded h-1.5 mt-2"><div class="bg-pink-500 h-1.5 rounded-full w-[40%]"></div></div><span class="text-xs">1,200 TCN</span></div>
+            <div class="bg-[#121826] p-3 rounded-xl"><i class="fas fa-share-alt text-2xl"></i><p class="font-bold mt-1">Share Booster</p><div class="bg-gray-700 rounded h-1.5 mt-2"><div class="bg-purple-500 h-1.5 rounded-full w-[40%]"></div></div><span class="text-xs">1,200 TCN</span></div>
+          </div>
+          <div class="bg-gradient-to-r from-indigo-900/30 to-cyan-900/30 p-4 rounded-2xl"><p class="text-sm font-semibold">📊 Creator Growth • 42.5K likes & shares</p><button class="mt-2 text-xs bg-white/10 px-4 py-2 rounded-full">Promote Now</button></div>
+          <div class="bg-[#121826] rounded-xl p-4">
+            <div class="flex justify-between"><span>🔥 TikTok Video Views</span><span class="text-green-400">Reward 2,500 TCN</span></div>
+            <div class="w-full bg-gray-700 rounded-full h-2 mt-2"><div class="bg-yellow-500 h-2 rounded-full w-[60%]"></div></div>
+            <button class="mt-3 w-full py-2 bg-cyan-600/30 rounded-lg text-sm">Engage More</button>
+          </div>
+          <p class="text-center text-xs text-gray-500 pt-2"><i class="fas fa-headset"></i> Chat with support: LIVE CHAT • CONTACT FOR PROMOTIONS</p>
+        </div>
+      ;
+    }
+
+    function renderPromotionsTab(user) {
+      return 
+        <div class="space-y-4">
+          <div class="bg-[#121826] rounded-2xl p-5 text-center border border-cyan-800/30">
+            <i class="fas fa-crown text-4xl text-amber-400"></i>
+            <p class="text-xl font-bold mt-2">${user.currentRank}</p>
+            <p class="text-xs text-gray-400">Next: ${user.nextRank}</p>
+            <div class="mt-2 bg-gray-800 rounded-full h-2"><div class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-2 rounded-full" style="width:${user.vipProgress}%"></div></div>
+            <p class="text-xs mt-1">${user.vipProgress}% to next rank</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-center">
+            <div class="bg-[#121826] p-3 rounded-xl"><i class="fas fa-chart-line text-cyan-400"></i><p class="text-sm mt-1">Referral Booster +1200 TCN</p></div>
+            <div class="bg-[#121826] p-3 rounded-xl"><i class="fas fa-users text-cyan-400"></i><p class="text-sm mt-1">Campaign Booster</p></div>
+          </div>
+          <div class="bg-[#121826] p-4 rounded-xl"><p class="font-semibold">🎁 INFLUENCER PARTNERSHIP</p><p class="text-xs text-gray-400">Sponsored collaboration requests: apply now</p><button class="mt-2 btn-primary-grad px-4 py-2 rounded-full text-sm">Request Collab</button></div>
+        </div>
+      ;
+    }
+
+    function renderDepositTab(user) {
+      return 
+        <div class="space-y-4">
+          <div class="bg-[#121826] rounded-2xl p-4"><p class="text-gray-400 text-sm">Available for deposit</p><p class="text-3xl font-bold">${user.walletBalance.toLocaleString()} ETB</p></div>
+          <div class="bg-[#121826] rounded-2xl p-4">
+            <h3 class="font-bold mb-2">🏦 Select payment method</h3>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <button data-method="CBE" class="pay-method-btn bg-gray-800 p-2 rounded-lg">Commercial Bank</button>
+              <button data-method="Bank of Abyssinia" class="pay-method-btn bg-gray-800 p-2 rounded-lg">Bank of Abyssinia</button>
+<button data-method="Telebirr" class="pay-method-btn bg-gray-800 p-2 rounded-lg">Telebirr</button>
+              <button data-method="Crypto Wallet" class="pay-method-btn bg-gray-800 p-2 rounded-lg">Crypto Wallet</button>
+              <button data-method="Visa/Mastercard" class="pay-method-btn bg-gray-800 p-2 rounded-lg">Visa/Mastercard</button>
+            </div>
+            <div class="mt-4 flex gap-2"><input type="number" id="deposit-amount" placeholder="Amount (ETB)" class="bg-[#1E1F2A] rounded-xl px-4 py-2 w-full border border-gray-700"><button id="confirm-deposit-btn" class="btn-primary-grad px-5 py-2 rounded-xl font-bold">Deposit</button></div>
+            <p class="text-[10px] text-gray-500 mt-2">Upload payment screenshot after deposit (simulated)</p>
+          </div>
+          <div class="bg-[#121826] rounded-2xl p-3"><h4 class="font-semibold">📜 Recent transactions</h4>${user.recentTransactions.slice(0,3).map(tx => <div class="flex justify-between text-sm border-b border-gray-800 py-2"><span>${tx.method}</span><span>${tx.amount} ETB</span><span class="text-green-400">${tx.status}</span></div>).join('')}</div>
+        </div>
+      ;
+    }
+
+    function renderAccountTab(user) {
+      return 
+        <div class="space-y-5">
+          <div class="bg-[#121826] rounded-2xl p-5 text-center"><i class="fas fa-user-circle text-6xl text-cyan-300"></i><h2 class="text-xl font-bold mt-2">${user.fullName || "Member"}</h2><p class="text-sm text-gray-400">Level ${user.level} • Prosperity Partner</p></div>
+          <div class="flex justify-between bg-[#121826] p-4 rounded-xl"><span>📊 Total Earnings</span><span class="font-bold text-emerald-400">${user.totalEarnings.toLocaleString()} ETB</span></div>
+          <div class="flex justify-between bg-[#121826] p-4 rounded-xl"><span>✅ Tasks Completed</span><span>${user.tasksCompletedCount}</span></div>
+          <div class="bg-[#121826] p-4 rounded-xl"><span>🔒 Security Settings</span><div class="flex justify-between mt-2"><span>Biometrics Active</span><i class="fas fa-check-circle text-green-500"></i></div><div><span class="text-xs">Notifications: 3 unread</span></div></div>
+          <button id="reset-demo-tasks" class="w-full bg-gray-800 py-3 rounded-xl text-sm">Reset Demo Tasks (reclaim tasks)</button>
+        </div>
+      `;
+    }
+
+    // attach event listeners after rendering (task actions, deposit, reset)
+    function attachDynamicEvents(user) {
+      // task buttons (survey, watch, refer)
+      document.querySelectorAll(".task-action").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          const taskKey = btn.getAttribute("data-task");
+          const reward = parseInt(btn.getAttribute("data-reward"));
+          const taskName = btn.getAttribute("data-name");
+          if (!taskKey) return;
+          let currentUser = getCurrentUser();
+          if (!currentUser) return;
+          const result = completeTask(currentUser, taskKey, reward, taskName);
+          if (result.success) {
+            showToast(result.message, "success");
+            render();  // full refresh
+          } else {
+            showToast(result.message, "error");
+          }
+        });
+      });
+      
+      // deposit logic
+      const confirmDeposit = document.getElementById("confirm-deposit-btn");
+      if (confirmDeposit) {
+        confirmDeposit.addEventListener("click", () => {
+          const amountInput = document.getElementById("deposit-amount");
+          let amount = parseFloat(amountInput?.value);
+          if (isNaN(amount) || amount <= 0) return showToast("Enter valid amount", "error");
+          let activeMethod = "CBE";
+          const selected = document.querySelector(".pay-method-btn.bg-cyan-700");
+          if (selected) activeMethod = selected.getAttribute("data-method") || "CBE";
+let currUser = getCurrentUser();
+          if (!currUser) return;
+          const depResult = simulateDeposit(currUser, amount, activeMethod);
+          if (depResult.success) {
+            showToast(depResult.message, "success");
+            render();
+          } else showToast("Error", "error");
+        });
+      }
+      
+      // payment method selection style
+      document.querySelectorAll(".pay-method-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".pay-method-btn").forEach(b => b.classList.remove("bg-cyan-700", "bg-opacity-50"));
+          btn.classList.add("bg-cyan-700", "bg-opacity-50");
+        });
+      });
+      
+      const resetBtn = document.getElementById("reset-demo-tasks");
+      if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+          let u = getCurrentUser();
+          if (u) {
+            u.completedTasks = { survey: false, watchVideos: false, referFriend: false };
+            updateUserInStorage(u);
+            showToast("Tasks reset! You can complete them again.", "success");
+            render();
+          }
+        });
+      }
+    }
+
+    function showToast(msg, type) {
+      let toastDiv = document.createElement("div");
+      toastDiv.className = fixed bottom-24 left-4 right-4 max-w-md mx-auto z-50 text-center px-4 py-2 rounded-xl text-white font-medium ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} shadow-lg transition-all;
+      toastDiv.innerText = msg;
+      document.body.appendChild(toastDiv);
+      setTimeout(() => toastDiv.remove(), 2200);
+    }
+
+    // override final render to attach events after dashboard render
+    const origRender = render;
+    window.render = function() {
+      origRender();
+      setTimeout(() => {
+        const user = getCurrentUser();
+        if (user) attachDynamicEvents(user);
+      }, 50);
+    };
+    render = window.render;
+    render();
+  </script>
+</body>
+</html>
+`
